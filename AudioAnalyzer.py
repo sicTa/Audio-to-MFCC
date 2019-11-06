@@ -285,7 +285,12 @@ class AudioAnalyzer():
         Here we caluclate the MFCC's
         '''
         mfcc = dct(filter_banks, type=2, axis=1, norm='ortho')[:, 1 : (num_ceps + 1)] # Keep 2-13
-        
+
+        '''
+        ndarray
+        An array object represents a multidimensional,
+        homogeneous array of fixed-size items.
+        '''
         return mfcc
         
         
@@ -294,6 +299,101 @@ class AudioAnalyzer():
         ax = plt.gca()
         ax.invert_yaxis()
         plt.show()
+
+    def feature_vector(self, sample_rate = None, pre_emphasis = None, frame_size = None, frame_stride = None, NFFT = None, nfilt = None, num_ceps = None, N = 2):
+        '''
+        Forms a feature vector list from a mfcc list containg the mfcc and delta(dirst derivate)
+        and delta-delta(second derivative)
+
+        Each vector has 39 dimensions:
+            12 mfcc coefficients and their mean
+            12 delta coefficients and their mean
+            12 delta-delta coefficients and their mean
+
+        For more information visit
+        http://practicalcryptography.com/miscellaneous/machine-learning/guide-mel-frequency-cepstral-coefficients-mfccs/
+        for the formula
+        '''
+        number_of_vectors = numpy.size(mfcc, 0)
+        mfcc = self.MFCC(sample_rate, pre_emphases, frame_size, frame_stride, NFFT, nfilt, num_ceps)
+
+        delta = numpy.zeros(mfcc.shape())
+        delta_delta = numpy.zeros(mfcc.shape())
+
+        denominator = 0
+        for i in range(N):
+            denominator += i**2
+        denominator*=2
+        
+        for t in range(number_of_vectors):
+            for n  in range(N):  
+                if t - n < 0:
+                    c_minus = mfcc[i]
+                else:
+                    c_minus = mfcc[i - N]
+
+                if t + n > number_of_vectors - 1:
+                    c_plus = mfcc[number_of_vectors - 1]
+                else:
+                    c_plus = mfcc[i + 1]
+
+            delta[t] += n*(c_plus - c_minus)/denominator
+
+        for t in range(number_of_vectors):
+            for n  in range(N):  
+                if t - n < 0:
+                    c_minus = delta[i]
+                else:
+                    c_minus = delta[i - N]
+
+                if t + n > number_of_vectors - 1:
+                    c_plus = delta[number_of_vectors - 1]
+                else:
+                    c_plus = delta[i + 1]
+
+            delta_delta[t] += n*(c_plus - c_minus)/denominator
+
+        #now, calculate the mean for every vector and append it
+        #every vector in the list of features
+        #is of length 3(mfcc_x + 1)
+        feature = numpy.zeros(3*numpy.size(mfcc, 0) + 3, numpy.size(mfcc, 1))
+        for t in range(number_of_vectors):
+
+            curr_mfcc = mfcc[t]
+            mean_mfcc = numpy.mean(curr_mfcc)
+            curr_mfcc.append(mean_mfcc)
+
+            curr_delta = delta[i]
+            mean_delta = numpy.mean(curr_delta)
+            curr_delta.append(mean_delta)
+
+            curr_delta_delta = delta_delta[i]
+            mean_delta_delta = numpy.mean(curr_delta_delta)
+            curr_delta_delta.append(mean_delta_delta)
+
+            feature[t] = numpy.empty().append(curr_mfcc).append(curr_delta).append(curr_delta_delta)
+
+
+
+
+        return feature
+
+        
+            
+
+            
+
+            
+                
+             
+            
+
+        
+
+        
+        
+        
+        
             
         
         
