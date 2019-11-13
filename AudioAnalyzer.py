@@ -433,6 +433,9 @@ class AudioAnalyzer():
             for j  in range(frame_length):
                 energy += frames[i][j]**2
                 
+                
+            if energy == 0:
+                energy  = 1e-3
             energy = numpy.log(energy)
             curr_list = mfcc[i].tolist()
             curr_list.append(energy)
@@ -481,24 +484,81 @@ class AudioAnalyzer():
         #every vector in the list of features
         #is of length 3 len of single mfcc vector
 
+
         for t in range(number_of_vectors):
             curr_mfcc =  mfcc_list[t]
             curr_delta = delta[t]
             curr_delta_delta = delta_delta[t]
-            feature.append([])
-            feature[t] += curr_mfcc
-            feature[t] += curr_delta
-            feature[t] += curr_delta_delta
-            
-            
+            #feature.append([])
+            #feature[t]  = []
 
+            curr = []
+            curr +=     (curr_mfcc +   curr_delta + curr_delta_delta)
+            
+            feature[t] = curr
+            
             
 
 
         return feature
+    
+
+    def normalized_feature_vector(self, signal_name, sample_rate = None, pre_emphasis = None, frame_size = None, frame_stride = None, NFFT = None, nfilt = None, num_ceps = None, N = 2):
+      
+        features = self.feature_vector(signal_name, sample_rate, pre_emphasis, frame_size, frame_stride, NFFT, nfilt, num_ceps, N)
+        
+        
+
+        num_of_vecs = len(features)
+        vec_dim = len(features[0])
+        
+
+        for j in range(vec_dim):
+            #normalazing the mean to zero
+            mean = 0
+            for i in range(num_of_vecs):
+                mean += features[i][j]
+            mean /= num_of_vecs
+            for i in range(num_of_vecs):
+                features[i][j] -= mean
+                 
+        #normalizing the standard deviation to one
+            deviation = 0
+            for i in range(num_of_vecs):
+                deviation += (features[i][j])**2      #we do not subtract mean because mean is now 0
+            deviation /= (num_of_vecs - 1)
+            deviation = numpy.sqrt(deviation)
+            for i in range(num_of_vecs):
+                features[i][j] /= deviation
+                
+                
+        #now, changing the range of all the variables to [0,1]
+        
+        for j in range(vec_dim):
+            minimum = 50000
+            maximum = -5000
+            for i in range(num_of_vecs):
+                if features[i][j] > maximum:
+                    maximum = features[i][j]
+                if features[i][j] < minimum:
+                    minimum = features[i][j]
+                    
+            oldRange = maximum - minimum
+            newRange = 1 - 0
+            new_minimum = 0
+           
+            for i in range(num_of_vecs):
+                features[i][j] = (features[i][j] - minimum)*newRange/oldRange + new_minimum
+               
+        return features
+                       
+        
 
         
-            
+        
+        
+        
+        
 
             
 
